@@ -348,3 +348,14 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
+
+
+# IGNORING OPENSCENEGRAPH DATA AND MODEL DATA
+OpenSceneGraph-Data/
+OpenSceneGraph-3.6.5-VC2022-64-Debug/
+Data/
+x64/
+.vs/
+
+OpenSceneGraph-3.6.5-VC2022-64-Debug-2023-01.7z
+OpenSceneGraph-Data-3.4.0.zip
