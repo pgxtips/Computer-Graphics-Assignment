@@ -19,8 +19,10 @@
 #include <TrafficSystem/CarFacadeFactory.h>
 #include <TrafficSystem/CarFacade.h>
 
+// ASSIGNMENT INCLUDES
 #include <Assignment/ControlledTrafficLightFacadeFactory.h>
 #include <Assignment/RoadTileLightsFacadeFactory.h>
+// END ASSIGNMENT
 
 #include <TrafficSystem/AnimationPointFinder.h>
 #include <TrafficSystem/Collider.h>
@@ -93,6 +95,7 @@ int main()
 	Common::FacadeManufactory::instance()->addFactory("TrafficLight", new TrafficSystem::TrafficLightFacadeFactory());
 	Common::FacadeManufactory::instance()->addFactory("Car", new TrafficSystem::CarFacadeFactory());
 
+	// ASSIGNMENT FACADES FACTORY
 	Common::FacadeManufactory::instance()->addFactory("ControlledTrafficLight", new Assignment::ControlledTrafficLightFacadeFactory());
 	Common::FacadeManufactory::instance()->addFactory("RoadXJunctionLights", new Assignment::RoadTileLightsFacadeFactory());
 
@@ -149,7 +152,7 @@ int main()
 	g_pRoot->addChild(Common::FacadeManufactory::instance()->create("Car", "Car-Stratos", Common::AssetLibrary::instance()->getAsset("Car-Stratos"), mCarS, true)->root());
 	g_pRoot->addChild(Common::FacadeManufactory::instance()->create("Default", "Car-Delta", Common::AssetLibrary::instance()->getAsset("Car-Delta"), mCarD, true)->root());
 
-
+	// ADDING ASSIGNMENT OBJECTS TO THE SCENE
 	g_pRoot->addChild(Common::FacadeManufactory::instance()->create("ControlledTrafficLight", "ControlledTrafficLight0", Common::AssetLibrary::instance()->getAsset("TrafficLight"), mTL, true)->root());
 	g_pRoot->addChild(Common::FacadeManufactory::instance()->create("RoadXJunctionLights", "RoadXJunctionLights0", Common::AssetLibrary::instance()->getAsset("Road-XJunction"), mX, true)->root());
 
@@ -187,10 +190,10 @@ int main()
 		}
 	}
 
-	if (Assignment::ControlledTrafficLightFacade* pCTLF = dynamic_cast<Assignment::ControlledTrafficLightFacade*>(Common::Facade::findFacade("ControlledTrafficLight"))) 
+	// Controlling Traffic Light Facades
+	if (Assignment::ControlledTrafficLightFacade* pCTLF = dynamic_cast<Assignment::ControlledTrafficLightFacade*>(Common::Facade::findFacade("ControlledTrafficLight0"))) 
 	{
-		
-		pCTLF->SetState(Assignment::ControlledTrafficLightFacade::LightState::STOP);
+		pCTLF->SetState(Assignment::ControlledTrafficLightFacade::LightState::GO);
 	}
 	
 
