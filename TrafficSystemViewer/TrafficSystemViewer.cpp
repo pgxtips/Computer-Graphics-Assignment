@@ -11,6 +11,7 @@
 #include <Common/Printer.h>
 #include <Common/AssetLibrary.h>
 #include <Common/FacadeManufactory.h>
+#include <Common/NodeFinderT.h>
 
 #include <TrafficSystem/RoadFacadeFactory.h>
 #include <TrafficSystem/RoadFacade.h>
@@ -22,7 +23,8 @@
 // ASSIGNMENT INCLUDES
 #include <Assignment/ControlledTrafficLightFacadeFactory.h>
 #include <Assignment/RoadTileLightsFacadeFactory.h>
-// END ASSIGNMENT
+#include <Assignment/Geometry.h>
+// END ASSIGNMENT INCLUDES
 
 #include <TrafficSystem/AnimationPointFinder.h>
 #include <TrafficSystem/Collider.h>
@@ -120,7 +122,7 @@ int main()
 	g_pRoot = new osg::Group();
 	g_pRoot->ref();
 
-	// transforms
+	// transforms and matracies
 
 	osg::Matrixf mS, mT, mX, mC, mTL, mCarT, mCarS, mCarD;
 
@@ -141,7 +143,30 @@ int main()
 	mCarS = osg::Matrixf::rotate(osg::DegreesToRadians(90.0f), 1.0f, 0.0f, 0.0f) *
 		osg::Matrixf::rotate(osg::DegreesToRadians(90.0f), 0.0f, 0.0f, 1.0f) *
 		osg::Matrixf::translate(-120.0f, -150.0f, 0.0f);
-		
+	
+	// GEOMETRY SET UP
+	osg::MatrixTransform* pMTG = new osg::MatrixTransform();
+	Assignment::Geometry* pG = new Assignment::Geometry();
+	
+	pMTG->addChild(pG);
+
+	// CONE ANIMATION SETUP
+	osg::MatrixTransform* pConePos = new osg::MatrixTransform();
+	osg::MatrixTransform* pConeRot = new osg::MatrixTransform();
+	osg::MatrixTransform* pShapeRot = new osg::MatrixTransform();
+
+	osg::Matrixf mLC = osg::Matrixf::rotate(osg::DegreesToRadians(90.0f), osg::Vec3f(0.0f, 1.0f, 0.0f));
+	pShapeRot->setMatrix(mLC);
+
+	osg::Geode* pConeGeode = new osg::Geode();
+	osg::ShapeDrawable* pConeDrawable = new osg::ShapeDrawable(new osg::Cone(osg::Vec3f(0.0f, 0.0f, 0.0f), 20.0f, 30.0f));
+
+	pConePos->addChild(pConeRot);
+	pConeRot->addChild(pShapeRot);
+	pShapeRot->addChild(pConeGeode);
+	pConeGeode->addDrawable(pConeDrawable);
+
+
 	// ADDING OBJECTS TO SCENE
 	g_pRoot->addChild(Common::FacadeManufactory::instance()->create("RoadTile", "RoadStraight", Common::AssetLibrary::instance()->cloneAsset("Road-Straight"), mS, true)->root());
 	g_pRoot->addChild(Common::FacadeManufactory::instance()->create("RoadTile", "RoadTJunction", Common::AssetLibrary::instance()->cloneAsset("Road-TJunction"), mT, true)->root());
@@ -156,12 +181,44 @@ int main()
 	g_pRoot->addChild(Common::FacadeManufactory::instance()->create("ControlledTrafficLight", "ControlledTrafficLight0", Common::AssetLibrary::instance()->getAsset("TrafficLight"), mTL, true)->root());
 	g_pRoot->addChild(Common::FacadeManufactory::instance()->create("RoadXJunctionLights", "RoadXJunctionLights0", Common::AssetLibrary::instance()->getAsset("Road-XJunction"), mX, true)->root());
 
+	//ADDING GEOMETRY OBJECTS TO THE SCENE
+	g_pRoot->addChild(pMTG);
 
+	// ADDING CONE TO SCENE
+	g_pRoot->addChild(pConePos);
 	 
 
 
 	// CONFIGURING OBJECTS IN SCENE
+	
+	// GETTING GLOBAL TRANSFORM OF ANIMATION POINTS
+	Common::NodeFinderT<osg::MatrixTransform> animPoint("1");
+	osg::Node* pFacadeRoot = Common::Facade::findFacade("RoadStraight")->root();
+	
+	if (osg::MatrixTransform* pAnimPoint = animPoint.find(pFacadeRoot))
+	{
+		std::cout << "found!" << std::endl;
 
+		osg::NodePathList pl = pAnimPoint->getParentalNodePaths(g_pRoot);
+		for (osg::NodePathList::iterator it = pl.begin(); it != pl.end(); it++)
+		{
+			if (std::find(it->begin(), it->end(), pFacadeRoot) != it->end())
+			{
+				osg::Matrix m = osg::computeLocalToWorld(*it);
+
+				osg::Vec3f mTrans, mScale;
+				osg::Quat qRot, qScaleRot;
+
+				m.decompose(mTrans, qRot, mScale, qScaleRot);
+				pConePos->setMatrix(osg::Matrix::translate(mTrans + osg::Vec3f(0.0f,
+				0.0f, 100.0f)));
+				pConeRot->setMatrix(osg::Matrix::rotate(qRot));
+				break;
+			}
+		}
+	}
+
+	// FINDING AND CONFIGURING 'ROADSTRAIGHT' FACADE
 	if(TrafficSystem::RoadFacade *pRF=dynamic_cast<TrafficSystem::RoadFacade*>(Common::Facade::findFacade("RoadStraight")))
 	{
 		pRF->enableAnimationIDs(true);
@@ -173,6 +230,7 @@ int main()
 		apf.print();
 	}
 
+	// FINDING AND CONFIGURING 'CAR-STRATOS' FACADE 
 	if (TrafficSystem::CarFacade* pCF = dynamic_cast<TrafficSystem::CarFacade*>(Common::Facade::findFacade("Car-Stratos")))
 	{
 		// position the detection box for the collider
@@ -193,15 +251,52 @@ int main()
 	// Controlling Traffic Light Facades
 	if (Assignment::ControlledTrafficLightFacade* pCTLF = dynamic_cast<Assignment::ControlledTrafficLightFacade*>(Common::Facade::findFacade("ControlledTrafficLight0"))) 
 	{
-		pCTLF->SetState(Assignment::ControlledTrafficLightFacade::LightState::GO);
+		pCTLF->SetState(Assignment::ControlledTrafficLightFacade::LightState::STOP);
 	}
 	
 
 	if (Assignment::RoadTileLightsFacade* pRTLF = dynamic_cast<Assignment::RoadTileLightsFacade*>(Common::Facade::findFacade("RoadXJunctionLights0")))
 	{
 		// Adding light to Road Tile Light Facade
-		osg::Matrix m0 = osg::Matrixf::scale(0.03f, 0.03f, 0.03f) * osg::Matrixf::rotate(osg::DegreesToRadians(0.0f), 0.0f, 0.0f, 1.0f) * osg::Matrixf::translate(-180.0f, 180.0f, 0.0f);
+		osg::Matrix m0, m1, m2, m3;
+
+		m0 = osg::Matrixf::scale(0.03f, 0.03f, 0.03f) *
+
+			osg::Matrixf::rotate(osg::DegreesToRadians(0.0f), 0.0f, 0.0f, 1.0f) *
+
+			osg::Matrixf::translate(-180.0f, 180.0f, 0.0f);
+
+
+
+		m1 = osg::Matrixf::scale(0.03f, 0.03f, 0.03f) *
+
+			osg::Matrixf::rotate(osg::DegreesToRadians(90.0f), 0.0f, 0.0f, 1.0f) *
+
+			osg::Matrixf::translate(-180.0f, -180.0f, 0.0f);
+
+
+
+		m2 = osg::Matrixf::scale(0.03f, 0.03f, 0.03f) *
+
+			osg::Matrixf::rotate(osg::DegreesToRadians(180.0f), 0.0f, 0.0f, 1.0f) *
+
+			osg::Matrixf::translate(180.0f, -180.0f, 0.0f);
+
+		m3 = osg::Matrixf::scale(0.03f, 0.03f, 0.03f) *
+
+			osg::Matrixf::rotate(osg::DegreesToRadians(-90.0f), 0.0f, 0.0f, 1.0f) *
+
+			osg::Matrixf::translate(180.0f, 180.0f, 0.0f);
+
+
+
 		pRTLF->addLight(dynamic_cast<Assignment::ControlledTrafficLightFacade*>(Common::FacadeManufactory::instance()->create("ControlledTrafficLight", "TL0", Common::AssetLibrary::instance()->cloneAsset("TrafficLight"), m0, true)));
+
+		pRTLF->addLight(dynamic_cast<Assignment::ControlledTrafficLightFacade*>(Common::FacadeManufactory::instance()->create("ControlledTrafficLight", "TL1", Common::AssetLibrary::instance()->cloneAsset("TrafficLight"), m1, true)));
+
+		pRTLF->addLight(dynamic_cast<Assignment::ControlledTrafficLightFacade*>(Common::FacadeManufactory::instance()->create("ControlledTrafficLight", "TL2", Common::AssetLibrary::instance()->cloneAsset("TrafficLight"), m2, true)));
+
+		pRTLF->addLight(dynamic_cast<Assignment::ControlledTrafficLightFacade*>(Common::FacadeManufactory::instance()->create("ControlledTrafficLight", "TL3", Common::AssetLibrary::instance()->cloneAsset("TrafficLight"), m3, true)));
 	}
 	//Common::AssetLibrary::instance()->printAsset("TrafficLight");
 

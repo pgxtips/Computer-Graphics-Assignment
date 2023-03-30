@@ -21,12 +21,14 @@
   <ItemGroup>
     <ClInclude Include="ControlledTrafficLightFacade.h" />
     <ClInclude Include="ControlledTrafficLightFacadeFactory.h" />
+    <ClInclude Include="Geometry.h" />
     <ClInclude Include="RoadTileLightsFacade.h" />
     <ClInclude Include="RoadTileLightsFacadeFactory.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ControlledTrafficLightFacade.cpp" />
     <ClCompile Include="ControlledTrafficLightFacadeFactory.cpp" />
+    <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="RoadTileLightsFacade.cpp" />
     <ClCompile Include="RoadTileLightsFacadeFactory.cpp" />
   </ItemGroup>
